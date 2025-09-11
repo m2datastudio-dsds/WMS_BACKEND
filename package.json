@@ -1,0 +1,31 @@
+{
+  "name": "watermanagement_backend",
+  "version": "1.0.0",
+  "description": "Backend server for Water Management app",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.10.1",
+    "cors": "^2.8.5",
+    "cron": "^4.3.1",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "mssql": "^11.0.1",
+    "node-cron": "^4.1.1",
+    "nodemailer": "^7.0.3",
+    "pdf-lib": "^1.17.1",
+    "pdfkit": "^0.17.1",
+    "pg": "^8.16.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "prisma": "^6.9.0"
+  }
+}
