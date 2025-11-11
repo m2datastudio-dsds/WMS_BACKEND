@@ -11,6 +11,10 @@ export const TABLES = {
   // If you really store FT in RWPH_MFM1/RWPH_MFM2, add them and map below.
   // mfm1:   '[dbo].[RWPH_MFM1]',
   // mfm2:   '[dbo].[RWPH_MFM2]',
+  noise:  '[dbo].[RWPH_NOISE]',   
+  vib:    '[dbo].[RWPH_VIB]',     
+  pumpRun:'[dbo].[RWPH_PUMP_RUN]',
+  temp:   '[dbo].[RWPH_TEMP]',    
 };
 
 /**
@@ -23,8 +27,12 @@ export const TABLES = {
 
 export const TAB_KEYS = {
   TAB1: { table: 'pump',   keys: ['A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12','A13','A14','A15'] },
-  TAB2: { table: 'analog', keys: Array.from({ length: 34 }, (_, i) => `A${i+1}`) }, // A1..A34
+  TAB2: { table: 'analog', keys: Array.from({ length: 36 }, (_, i) => `A${i+1}`) }, // A1..A34
   TAB3: { table: 'valve',  keys: ['A1','A2','A3','A4','A5','A6','A7'] },
+  TAB4: { table: 'noise',  keys: Array.from({ length: 6 }, (_, i) => `A${i + 1}`) },
+  TAB5: { table: 'vib',    keys: Array.from({ length: 12 }, (_, i) => `A${i + 1}`) },
+  TAB6: { table: 'pumpRun', keys: ['VTP_01_HR','VTP_01_MIN','VTP_02_HR','VTP_02_MIN','VTP_03_HR','VTP_03_MIN','VTP_04_HR','VTP_04_MIN','VTP_05_HR','VTP_05_MIN','VTP_06_HR','VTP_06_MIN','CWP_01_HR','CWP_01_MIN','CWP_02_HR','CWP_02_MIN'] },
+  TAB7: { table: 'temp',   keys: Array.from({ length: 114 }, (_, i) => `A${i + 1}`) },
 };
 
 

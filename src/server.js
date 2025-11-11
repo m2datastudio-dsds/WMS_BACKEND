@@ -10,6 +10,7 @@ import mstRoutes from './routes/mstRoutes.js';
 import reportRoutes from './routes/report.routes.js';
 import rwphRoutes from './routes/rwphRoutes.js';
 import cwphRoutes from './routes/cwphRoutes.js';
+import vandalismRoutes from './routes/vandalismRoutes.js';
 
 import { startCronJobs } from './cronjobs/dailyReportCron.js';
 
@@ -26,7 +27,8 @@ const PORT = process.env.PORT || 5000;
 const allowlist = [
   /^http:\/\/localhost:\d+$/,        // http://localhost:<any>
   /^http:\/\/127\.0\.0\.1:\d+$/,     // http://127.0.0.1:<any>
-  /^http:\/\/192\.168\.123\.154:\d+$/ // http://192.168.123.154:<any>  <-- adjust for your LAN
+  /^http:\/\/192\.168\.123\.154:\d+$/, // http://192.168.123.154:<any>  <-- adjust for your LAN
+  /^http:\/\/65\.2\.129\.140:\d+$/ // new IP with any port
 ];
 
 // Make cache/CDNs vary by Origin
@@ -75,6 +77,7 @@ app.use('/api/mst-analog', mstRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/rwph', rwphRoutes);
 app.use('/api/cwph', cwphRoutes);
+app.use('/api/vandalism', vandalismRoutes);
 
 // ✅ Start cron jobs
 startCronJobs();

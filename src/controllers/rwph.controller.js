@@ -34,13 +34,27 @@ export const getRwphTabs = async (req, res) => {
       pump:   await latest(pool, TABLES.pump),
       valve:  await latest(pool, TABLES.valve),
       analog: await latest(pool, TABLES.analog),
+      noise:   await latest(pool, TABLES.noise),
+      vib:     await latest(pool, TABLES.vib),
+      pumpRun: await latest(pool, TABLES.pumpRun),
+      temp:    await latest(pool, TABLES.temp),
     };
 
     const tabs = {};
     for (const [tab, { table, keys }] of Object.entries(TAB_KEYS)) {
       const row = rows[table] || {};
       const out = {};
-      for (const k of keys) out[k] = row[k] ?? null; // passthrough A-keys
+
+      // for (const k of keys) out[k] = row[k] ?? null; // passthrough A-keys
+      
+      // For normal A1..An style tables:
+      if (!table.includes('pumpRun')) {
+        for (const k of keys) out[k] = row[k] ?? null;
+      } else {
+        // For RWPH_PUMP_RUN table (columns like VTP_01_HR, etc.)
+        for (const k of keys) out[k] = row[k] ?? null;
+      }
+
       tabs[tab] = out;
     }
 

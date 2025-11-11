@@ -8,7 +8,8 @@ const MSR_TAGS = {
       "OCLR": "A3",     
       "OCND": "A4",   
       "FT 1": "A5",     
-      "FT_TT": "A6"   
+      "FT_TT": "A6",
+      "Vandalism": "A37" //  from VANDALISM table  
     }
   },
   MSR_02: {
@@ -19,7 +20,8 @@ const MSR_TAGS = {
       "OCLR": "A9",     
       "OCND": "A10",   
       "FT 2": "A11",    
-      "FT_TT": "A12"    
+      "FT_TT": "A12",
+      "Vandalism": "A38" //  from VANDALISM table   
     }
   }
 };
@@ -35,7 +37,9 @@ export const getMSRAnalogDetails = async (req, res) => {
     Object.values(MSR_TAGS).forEach(msr =>
       Object.values(msr.tags).forEach(tag => allRequiredTags.add(tag))
     );
-    const tagList = Array.from(allRequiredTags).join(', ');
+    const tagList = Array.from(allRequiredTags)
+    .filter(tag => tag !== "A37" && tag !== "A38")
+    .join(', ');
 
     // Query to get the latest MSR row
     const query = `
@@ -47,14 +51,25 @@ export const getMSRAnalogDetails = async (req, res) => {
       ORDER BY DATE1 DESC, TIME1 DESC
     `;
 
+    // --- Query 2: VANDALISM ---
+    const queryVandalism = `
+      SELECT TOP 1 A37, A38
+      FROM VANDALISM
+      ORDER BY DATE1 DESC, TIME1 DESC;
+    `;
+
     // Execute the query
-    const result = await pool.request().query(query);
+    const [result, vandalResult] = await Promise.all([
+      pool.request().query(query),
+      pool.request().query(queryVandalism)
+    ]);
 
     if (!result.recordset.length) {
       return res.status(404).json({ error: 'No MSR data found' });
     }
 
     const row = result.recordset[0];
+    const vandalismData = vandalResult.recordset?.[0] || {};
     const date = row.DateFormatted;
     const time = row.TimeFormatted;
 
@@ -71,7 +86,11 @@ export const getMSRAnalogDetails = async (req, res) => {
 
       // Map each sensor with its corresponding value from the database
       for (const [sensorLabel, tag] of Object.entries(msrInfo.tags)) {
-        data[msrKey].sensors[sensorLabel] = row[tag] ?? '-';
+        if (tag === "A37" || tag === "A38") {
+          data[msrKey].sensors[sensorLabel] = vandalismData[tag] ?? '-';
+        } else {
+          data[msrKey].sensors[sensorLabel] = row[tag] ?? '-';
+        }
       }
     }
 

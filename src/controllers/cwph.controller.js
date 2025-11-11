@@ -55,14 +55,22 @@ export const getCwphTabs = async (req, res) => {
     const analogTab = await latestFillPerKey(
       pool,
       TABLES.analog,
-      TAB_KEYS.TAB2.keys,   // A1..A34
+      TAB_KEYS.TAB2.keys,   // A1..A16
       100                   // look back up to 100 rows (tune as needed)
     );
+    const vibRow      = await latest(pool, TABLES.vib);
+    const pumpRunRow  = await latest(pool, TABLES.pump_run);
+    const noiseRow    = await latest(pool, TABLES.noise);
+    const tempRow     = await latest(pool, TABLES.temp);
 
     const tabs = {
       TAB1: Object.fromEntries(TAB_KEYS.TAB1.keys.map(k => [k, pumpRow?.[k] ?? null])),
       TAB2: analogTab,
       TAB3: Object.fromEntries(TAB_KEYS.TAB3.keys.map(k => [k, valveRow?.[k] ?? null])),
+      TAB4: Object.fromEntries(TAB_KEYS.TAB4.keys.map(k => [k, vibRow?.[k] ?? null])),
+      TAB5: Object.fromEntries(TAB_KEYS.TAB5.keys.map(k => [k, pumpRunRow?.[k] ?? null])),
+      TAB6: Object.fromEntries(TAB_KEYS.TAB6.keys.map(k => [k, noiseRow?.[k] ?? null])),
+      TAB7: Object.fromEntries(TAB_KEYS.TAB7.keys.map(k => [k, tempRow?.[k] ?? null])),
     };
 
     res.json({ ok: true, db: CWPH_DB, at: new Date().toISOString(), tabs });

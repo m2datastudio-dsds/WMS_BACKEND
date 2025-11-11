@@ -10,7 +10,8 @@ const MBR_TAGS = {
       "FT 1": "A9",
       "FT_TT": "A13",
       "OCLR": "A17",
-      "OCND": "A21"
+      "OCND": "A21",
+      "Vandalism": "A33" //  from VANDALISM table
     }
   },
   MBR_02: {
@@ -21,7 +22,8 @@ const MBR_TAGS = {
       "FT 2": "A10",
       "FT_TT": "A14",
       "OCLR": "A18",
-      "OCND": "A22"
+      "OCND": "A22",
+      "Vandalism": "A34" //  from VANDALISM table
     }
   },
   MBR_03: {
@@ -32,7 +34,8 @@ const MBR_TAGS = {
       "FT 3": "A11",
       "FT_TT": "A15",
       "OCLR": "A19",
-      "OCND": "A23"
+      "OCND": "A23",
+      "Vandalism": "A35" //  from VANDALISM table
     }
   },
   MBR_04: {
@@ -43,7 +46,8 @@ const MBR_TAGS = {
       "FT 4": "A12",
       "FT_TT": "A16",
       "OCLR": "A20",
-      "OCND": "A24"
+      "OCND": "A24",
+      "Vandalism": "A36" //  from VANDALISM table
     }
   }
 };
@@ -57,9 +61,11 @@ export const getMBRAnalogDetails = async (req, res) => {
     Object.values(MBR_TAGS).forEach(mbr =>
       Object.values(mbr.tags).forEach(tag => allRequiredTags.add(tag))
     );
-    const tagList = Array.from(allRequiredTags).join(', ');
+    const tagList = Array.from(allRequiredTags)
+    .filter(tag => !["A33", "A34", "A35", "A36"].includes(tag))
+    .join(', ');
 
-    // ✅ Query to get latest row in proper order with formatted values
+    //  Query to get latest row in proper order with formatted values
     const query = `
       SELECT TOP 1
         CONVERT(VARCHAR(10), DATE1, 120) AS DateFormatted,
@@ -69,13 +75,24 @@ export const getMBRAnalogDetails = async (req, res) => {
       ORDER BY DATE1 DESC, TIME1 DESC
     `;
 
-    const result = await pool.request().query(query);
+    // --- Query 2: VANDALISM ---
+    const queryVandalism = `
+      SELECT TOP 1 A33, A34, A35, A36
+      FROM VANDALISM
+      ORDER BY DATE1 DESC, TIME1 DESC;
+    `;
+
+    const [result, vandalResult] = await Promise.all([
+      pool.request().query(query),
+      pool.request().query(queryVandalism)
+    ]);
 
     if (!result.recordset.length) {
       return res.status(404).json({ error: 'No MBR data found' });
     }
 
     const row = result.recordset[0];
+    const vandalismData = vandalResult.recordset?.[0] || {};
     const date = row.DateFormatted;
     const time = row.TimeFormatted;
 
@@ -90,7 +107,11 @@ export const getMBRAnalogDetails = async (req, res) => {
       };
 
       for (const [sensorLabel, tag] of Object.entries(mbrInfo.tags)) {
+        if (["A33", "A34", "A35", "A36"].includes(tag)) {
+          data[mbrKey].sensors[sensorLabel] = vandalismData[tag] ?? '-';
+        } else {
         data[mbrKey].sensors[sensorLabel] = row[tag] ?? '-';
+        }
       }
     }
 

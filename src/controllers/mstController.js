@@ -7,6 +7,7 @@ const MSS_TAGS = {
       "Level Transmitter 1": "A1", // m
       "Level Transmitter 2": "A2", // m
       "Pressure Transmitter": "A3", // mH₂O
+      "Pressure Transmitter 2": "A4", // mH₂O 
       "Flow transmitter 1": "A5", // m³/hr
       "Flow transmitter 2": "A6", // m³/hr
       "Flow totaliser 1": "A7", // S/m
@@ -15,6 +16,7 @@ const MSS_TAGS = {
       "Conductivity sensor": "A10", // mV
       "PH": "A11", // m³
       "Oxidation reduction potential": "A12", // m³
+      "Vandalism": "A39" //  from vandalism table
     }
   }
 };
@@ -28,7 +30,9 @@ export const getMSSAnalogDetails = async (req, res) => {
     Object.values(MSS_TAGS).forEach(mss =>
       Object.values(mss.tags).forEach(tag => allRequiredTags.add(tag))
     );
-    const tagList = Array.from(allRequiredTags).join(', ');
+    const tagList = Array.from(allRequiredTags)
+    .filter(tag => tag !== "A39") // exclude vandalism tag for separate query
+    .join(', ');
 
     // Query to get the latest MSS row
     const query = `
@@ -40,13 +44,24 @@ export const getMSSAnalogDetails = async (req, res) => {
       ORDER BY DATE1 DESC, TIME1 DESC
     `;
 
-    const result = await pool.request().query(query);
+    // --- Query 2: VANDALISM ---
+    const queryVandalism = `
+      SELECT TOP 1 A39
+      FROM VANDALISM
+      ORDER BY DATE1 DESC, TIME1 DESC;
+    `;
+
+    const [result, vandalResult] = await Promise.all([
+      pool.request().query(query),
+      pool.request().query(queryVandalism)
+    ]);
 
     if (!result.recordset.length) {
       return res.status(404).json({ error: 'No MSS data found' });
     }
 
     const row = result.recordset[0];
+    const vandalismValue = vandalResult.recordset?.[0]?.A39 ?? '-';
     const date = row.DateFormatted;
     const time = row.TimeFormatted;
 
@@ -63,7 +78,11 @@ export const getMSSAnalogDetails = async (req, res) => {
 
       // Map each sensor with its corresponding value from the database
       for (const [sensorLabel, tag] of Object.entries(mssInfo.tags)) {
+        if (tag === "A39") {
+          data[mssKey].sensors[sensorLabel] = vandalismValue;
+        } else {
         data[mssKey].sensors[sensorLabel] = row[tag] ?? '-';
+        }
       }
     }
 
