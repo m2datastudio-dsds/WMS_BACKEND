@@ -8,35 +8,49 @@ export const getLatestVandalismData = async (req, res) => {
     return res.status(400).json({ error: 'Invalid tag format' });
   }
 
+  const col = tag.toLowerCase(); // a1..a32 etc
+
   try {
     await poolConnect;
 
-    //  Get latest row with formatted date/time directly from SQL
-    const query = `
-      SELECT TOP 1 
-        CONVERT(VARCHAR(10), DATE1, 120) AS DateFormatted,
-        CONVERT(VARCHAR(8), TIME1, 108) AS TimeFormatted,
-        ${tag}
-      FROM VANDALISM
-      WHERE ${tag} IS NOT NULL
-      ORDER BY DATE1 DESC, TIME1 DESC
+    //  Get latest row with formatted date/time directly from Postgres
+    const sql = `
+      SELECT
+        date1,
+        time1,
+        ${col} AS value
+      FROM vandalism
+      WHERE ${col} IS NOT NULL
+      ORDER BY date1 DESC, time1 DESC
+      LIMIT 1
     `;
 
-    const result = await pool.request().query(query);
+    const { rows } = await pool.query(sql);
 
-    if (result.recordset.length === 0) {
+    if (!rows.length) {
       return res.json({ date: '-', time: '-', value: 'No data' });
     }
 
-    const row = result.recordset[0];
+    const row = rows[0];
 
-    const date = row.DateFormatted || '-';
-    const time = row.TimeFormatted || '-';
-    const value = row[tag] ?? 'No data';
+    const date =
+      row.date1 instanceof Date
+        ? row.date1.toISOString().split('T')[0]
+        : row.date1 ?? '-';
 
-    res.json({ date, time, value });
+    const timeRaw = row.time1;
+    const time =
+      typeof timeRaw === 'string'
+        ? timeRaw.slice(0, 8)
+        : timeRaw?.toString().slice(0, 8) ?? '-';
+
+    res.json({ 
+      date, 
+      time, 
+      value: row.value ?? 'No data',
+    });
   } catch (error) {
-    console.error('❌ Error fetching vandalism data:', error);
+    console.error(' Error fetching vandalism data:', error);
     return res.status(500).json({
       error: 'Internal Server Error',
       details: error.message,

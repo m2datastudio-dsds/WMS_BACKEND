@@ -5,16 +5,16 @@ export const RWPH_DB = process.env.RWPH_DB_DATABASE || 'RWPH';
 
 /** Tables */
 export const TABLES = {
-  pump:   '[dbo].[RWPH_PUMP]',
-  valve:  '[dbo].[RWPH_VALVE]',
-  analog: '[dbo].[RWPH_ANALOG]', // pH, Conductivity, ORP, PT, FT, LT, etc.
+  pump:   'rwph_pump',
+  valve:  'rwph_valve',
+  analog: 'rwph_analog', // pH, Conductivity, ORP, PT, FT, LT, etc.
   // If you really store FT in RWPH_MFM1/RWPH_MFM2, add them and map below.
   // mfm1:   '[dbo].[RWPH_MFM1]',
   // mfm2:   '[dbo].[RWPH_MFM2]',
-  noise:  '[dbo].[RWPH_NOISE]',   
-  vib:    '[dbo].[RWPH_VIB]',     
-  pumpRun:'[dbo].[RWPH_PUMP_RUN]',
-  temp:   '[dbo].[RWPH_TEMP]',    
+  noise:  'rwph_noise',   
+  vib:    'rwph_vib',     
+  pumpRun:'rwph_pump_run',
+  temp:   'rwph_temp',    
 };
 
 /**

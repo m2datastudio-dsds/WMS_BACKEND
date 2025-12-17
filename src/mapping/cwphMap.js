@@ -3,17 +3,17 @@
 export const CWPH_DB = process.env.CWPH_DB_DATABASE || 'CWPH';
 
 export const TABLES = {
-  pump:     '[dbo].[CWPH_PUMP]',
-  valve:    '[dbo].[CWPH_VALVE]',
-  analog:   '[dbo].[CWPH_ANALOG]',
+  pump:     'cwph_pump',
+  valve:    'cwph_valve',
+  analog:   'cwph_analog',
   // (available if you need later)
-  mfm1:     '[dbo].[CWPH_MFM1]',
-  mfm2:     '[dbo].[CWPH_MFM2]',
-  pump_run: '[dbo].[CWPH_PUMP_RUN]',
-  run_hr:   '[dbo].[CWPH_RUN_HR]',
-  noise:    '[dbo].[CWPH_NOISE]',   
-  vib:      '[dbo].[CWPH_VIB]', 
-  temp:     '[dbo].[CWPH_TEMP]',    
+  mfm1:     'cwph_mfm1',
+  mfm2:     'cwph_mfm2',
+  pump_run: 'cwph_pump_run',
+  run_hr:   'cwph_run_hr',
+  noise:    'cwph_noise',   
+  vib:      'cwph_vib', 
+  temp:     'cwph_temp',    
 };
 
 /**

@@ -2,32 +2,53 @@
 import { getPool } from '../middleware/cwph.js';
 import { CWPH_DB, TABLES, TAB_KEYS } from '../mapping/cwphMap.js';
 
-async function latest(pool, tableName) {
-  const q = `
-    SELECT TOP (1) *
-    FROM ${tableName} WITH (NOLOCK)
-    ORDER BY DATE1 DESC, TIME1 DESC
-  `;
-  const { recordset } = await pool.request().query(q);
-  return recordset?.[0] ?? null;
-}
-async function latestFillPerKey(pool, tableName, keys, lookback = 50) {
-  const q = `
-    SELECT TOP (${lookback}) *
-    FROM ${tableName} WITH (NOLOCK)
-    ORDER BY DATE1 DESC, TIME1 DESC
-  `;
-  const { recordset = [] } = await pool.request().query(q);
+// Convert all row keys to UPPERCASE so A1..A16 etc still work
+function normalizeRow(row) {
+  if (!row) return null;
   const out = {};
-  for (const k of keys) {
-    let val = null;
-    for (const row of recordset) {
-      if (row[k] !== null && row[k] !== undefined) { val = row[k]; break; }
-    }
-    out[k] = val; // stays null if no non-null found
+  for (const [k, v] of Object.entries(row)) {
+    out[k.toUpperCase()] = v;
   }
   return out;
 }
+
+async function latest(pool, tableName) {
+  const sql = `
+    SELECT *
+    FROM ${tableName}
+    WHERE date1 IS NOT NULL AND time1 IS NOT NULL
+    ORDER BY date1 DESC, time1 DESC
+    LIMIT 1
+  `;
+  const { rows } = await pool.query(sql);
+  return normalizeRow(rows[0]);
+}
+
+async function latestFillPerKey(pool, tableName, keys, lookback = 50) {
+ const sql = `
+    SELECT *
+    FROM ${tableName}
+    WHERE date1 IS NOT NULL AND time1 IS NOT NULL
+    ORDER BY date1 DESC, time1 DESC
+    LIMIT ${lookback}
+  `;
+  const { rows = [] } = await pool.query(sql);
+  const normRows = rows.map(normalizeRow);
+
+  const out = {};
+  for (const k of keys) {
+    let val = null;
+    for (const r of normRows) {
+      if (r[k] !== null && r[k] !== undefined) {
+        val = r[k];
+        break;
+      }
+    }
+    out[k] = val;
+  }
+  return out;
+}
+
 export const getCwphRaw = async (req, res) => {
   try {
     const pool = await getPool(CWPH_DB);

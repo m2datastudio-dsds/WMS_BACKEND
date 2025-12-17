@@ -2,14 +2,25 @@
 import { getPool } from '../middleware/rwph.js';
 import { RWPH_DB, TABLES, TAB_KEYS } from '../mapping/rwphMap.js';
 
+function normalizeRow(row) {
+  if (!row) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[k.toUpperCase()] = v;
+  }
+  return out;
+}
+
 async function latest(pool, tableName) {
-  const q = `
-    SELECT TOP (1) *
-    FROM ${tableName} WITH (NOLOCK)
-    ORDER BY DATE1 DESC, TIME1 DESC
+  const sql = `
+    SELECT *
+    FROM ${tableName}
+    WHERE date1 IS NOT NULL AND time1 IS NOT NULL
+    ORDER BY date1 DESC, time1 DESC
+    LIMIT 1
   `;
-  const { recordset } = await pool.request().query(q);
-  return recordset?.[0] ?? null;
+  const { rows } = await pool.query(sql);
+  return normalizeRow(rows[0]);
 }
 
 export const getRwphRaw = async (req, res) => {

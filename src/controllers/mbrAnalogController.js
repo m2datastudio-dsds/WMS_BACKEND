@@ -54,6 +54,7 @@ const MBR_TAGS = {
 
 export const getMBRAnalogDetails = async (req, res) => {
   try {
+    // for Postgres this is basically a one-time connection check
     await poolConnect;
 
     // Build required tag fields from all MBRs
@@ -61,40 +62,57 @@ export const getMBRAnalogDetails = async (req, res) => {
     Object.values(MBR_TAGS).forEach(mbr =>
       Object.values(mbr.tags).forEach(tag => allRequiredTags.add(tag))
     );
-    const tagList = Array.from(allRequiredTags)
-    .filter(tag => !["A33", "A34", "A35", "A36"].includes(tag))
-    .join(', ');
+
+    const vandalTags = ['A33', 'A34', 'A35', 'A36'];
+
+    const tagColumns = Array
+      .from(allRequiredTags)
+      .filter(tag => !vandalTags.includes(tag))
+      .map(tag => tag.toLowerCase()) // a1, a2, ...
+      .join(', ');
 
     //  Query to get latest row in proper order with formatted values
-    const query = `
-      SELECT TOP 1
-        CONVERT(VARCHAR(10), DATE1, 120) AS DateFormatted,
-        CONVERT(VARCHAR(8), TIME1, 108) AS TimeFormatted,
-        ${tagList}
-      FROM MBR_ANALOG
-      ORDER BY DATE1 DESC, TIME1 DESC
+    const analogSql = `
+      SELECT
+        date1,
+        time1,
+        ${tagColumns}
+      FROM mbr_analog
+      ORDER BY date1 DESC, time1 DESC
+      LIMIT 1
     `;
 
     // --- Query 2: VANDALISM ---
-    const queryVandalism = `
-      SELECT TOP 1 A33, A34, A35, A36
-      FROM VANDALISM
-      ORDER BY DATE1 DESC, TIME1 DESC;
+    const vandalSql = `
+      SELECT
+        a33, a34, a35, a36
+      FROM vandalism
+      ORDER BY date1 DESC, time1 DESC
+      LIMIT 1
     `;
 
-    const [result, vandalResult] = await Promise.all([
-      pool.request().query(query),
-      pool.request().query(queryVandalism)
+    const [analogResult, vandalResult] = await Promise.all([
+      pool.query(analogSql),
+      pool.query(vandalSql),
     ]);
 
-    if (!result.recordset.length) {
+    if (!analogResult.rows.length) {
       return res.status(404).json({ error: 'No MBR data found' });
     }
 
-    const row = result.recordset[0];
-    const vandalismData = vandalResult.recordset?.[0] || {};
-    const date = row.DateFormatted;
-    const time = row.TimeFormatted;
+    const analogRow = analogResult.rows[0];
+    const vandalRow = vandalResult.rows[0] || {};
+
+    const date =
+      analogRow.date1 instanceof Date
+        ? analogRow.date1.toISOString().split('T')[0]
+        : analogRow.date1 ?? '-';
+
+    const timeRaw = analogRow.time1;
+    const time =
+      typeof timeRaw === 'string'
+        ? timeRaw.slice(0, 8)
+        : timeRaw?.toString().slice(0, 8) ?? '-';
 
     const data = {};
 
@@ -103,21 +121,23 @@ export const getMBRAnalogDetails = async (req, res) => {
         name: mbrInfo.name,
         date,
         time,
-        sensors: {}
+        sensors: {},
       };
 
       for (const [sensorLabel, tag] of Object.entries(mbrInfo.tags)) {
-        if (["A33", "A34", "A35", "A36"].includes(tag)) {
-          data[mbrKey].sensors[sensorLabel] = vandalismData[tag] ?? '-';
+        if (vandalTags.includes(tag)) {
+          const col = tag.toLowerCase(); // a33...
+          data[mbrKey].sensors[sensorLabel] = vandalRow[col] ?? '-';
         } else {
-        data[mbrKey].sensors[sensorLabel] = row[tag] ?? '-';
+          const col = tag.toLowerCase(); // a1...
+          data[mbrKey].sensors[sensorLabel] = analogRow[col] ?? '-';
         }
       }
     }
 
     res.json({ data });
   } catch (error) {
-    console.error('❌ Error fetching MBR_ANALOG:', error);
+    console.error(' Error fetching MBR_ANALOG:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 };

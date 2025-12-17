@@ -37,41 +37,58 @@ export const getMSRAnalogDetails = async (req, res) => {
     Object.values(MSR_TAGS).forEach(msr =>
       Object.values(msr.tags).forEach(tag => allRequiredTags.add(tag))
     );
-    const tagList = Array.from(allRequiredTags)
-    .filter(tag => tag !== "A37" && tag !== "A38")
-    .join(', ');
+
+    const vandalTags = ['A37', 'A38'];
+
+    const tagColumns = Array
+      .from(allRequiredTags)
+      .filter(tag => !vandalTags.includes(tag))
+      .map(tag => tag.toLowerCase())
+      .join(', ');
 
     // Query to get the latest MSR row
-    const query = `
-      SELECT TOP 1
-        CONVERT(VARCHAR(10), DATE1, 120) AS DateFormatted,
-        CONVERT(VARCHAR(8), TIME1, 108) AS TimeFormatted,
-        ${tagList}
-      FROM MSR_ANALOG
-      ORDER BY DATE1 DESC, TIME1 DESC
+    const analogSql = `
+      SELECT
+        date1,
+        time1,
+        ${tagColumns}
+      FROM msr_analog
+      ORDER BY date1 DESC, time1 DESC
+      LIMIT 1
     `;
 
     // --- Query 2: VANDALISM ---
-    const queryVandalism = `
-      SELECT TOP 1 A37, A38
-      FROM VANDALISM
-      ORDER BY DATE1 DESC, TIME1 DESC;
+    const vandalSql = `
+      SELECT
+        a37, a38
+      FROM vandalism
+      ORDER BY date1 DESC, time1 DESC
+      LIMIT 1
     `;
 
     // Execute the query
-    const [result, vandalResult] = await Promise.all([
-      pool.request().query(query),
-      pool.request().query(queryVandalism)
+    const [analogResult, vandalResult] = await Promise.all([
+      pool.query(analogSql),
+      pool.query(vandalSql),
     ]);
 
-    if (!result.recordset.length) {
+    if (!analogResult.rows.length) {
       return res.status(404).json({ error: 'No MSR data found' });
     }
 
-    const row = result.recordset[0];
-    const vandalismData = vandalResult.recordset?.[0] || {};
-    const date = row.DateFormatted;
-    const time = row.TimeFormatted;
+    const analogRow = analogResult.rows[0];
+    const vandalRow = vandalResult.rows[0] || {};
+
+    const date =
+      analogRow.date1 instanceof Date
+        ? analogRow.date1.toISOString().split('T')[0]
+        : analogRow.date1 ?? '-';
+
+    const timeRaw = analogRow.time1;
+    const time =
+      typeof timeRaw === 'string'
+        ? timeRaw.slice(0, 8)
+        : timeRaw?.toString().slice(0, 8) ?? '-';
 
     const data = {};
 
@@ -86,10 +103,12 @@ export const getMSRAnalogDetails = async (req, res) => {
 
       // Map each sensor with its corresponding value from the database
       for (const [sensorLabel, tag] of Object.entries(msrInfo.tags)) {
-        if (tag === "A37" || tag === "A38") {
-          data[msrKey].sensors[sensorLabel] = vandalismData[tag] ?? '-';
+        if (vandalTags.includes(tag)) {
+          const col = tag.toLowerCase();
+          data[msrKey].sensors[sensorLabel] = vandalRow[col] ?? '-';
         } else {
-          data[msrKey].sensors[sensorLabel] = row[tag] ?? '-';
+          const col = tag.toLowerCase();
+          data[msrKey].sensors[sensorLabel] = analogRow[col] ?? '-';
         }
       }
     }
@@ -97,7 +116,7 @@ export const getMSRAnalogDetails = async (req, res) => {
     // Return the formatted MSR data
     res.json({ data });
   } catch (error) {
-    console.error('❌ Error fetching MSR_ANALOG:', error);
+    console.error(' Error fetching MSR_ANALOG:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 };
