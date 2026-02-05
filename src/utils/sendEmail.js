@@ -45,6 +45,7 @@ const sendEmail = (pdfFilePaths, reportDateFormatted, reportPeriodText = '') => 
       'eetwadrwscbe2023@gmail.com',
       'pillur3project@gmail.com',
       'thinsaran@sias.co.in',
+      'rajendran.p@meghaeng.com',
       'venkateshwarank12@gmail.com',
       'vasan2051@gmail.com',
     ],
