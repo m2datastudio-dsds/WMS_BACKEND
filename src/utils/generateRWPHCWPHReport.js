@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
-export const generateRWPHCWPHReport = async (data, reportDateFormatted) => {
+export const generateRWPHCWPHReport = async (data, reportDateFormatted, reportPeriodText = '') => {
     // const outputDir = path.resolve('src', 'reports');
     // const filePath = path.join(outputDir, `RWPH_CWPH_Report_${reportDateFormatted}.pdf`);
     // if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -25,6 +25,7 @@ export const generateRWPHCWPHReport = async (data, reportDateFormatted) => {
             { text: 'COIMBATORE CORPORATION INCLUDING NEWLY MERGED AREAS WITH', size: 10 },
             { text: 'RIVER BHAVANI AS SOURCE PILLUR-3', size: 10 },
             { text: `DAILY REPORT ON DATE: ${reportDateFormatted}`, size: 11, color: rgb(0, 0, 0.8) },
+            ...(reportPeriodText ? [{ text: `REPORT PERIOD: ${reportPeriodText}`, size: 10, color: rgb(0.8, 0, 0) }] : [])
         ];
 
         lines.forEach((line, i) => {
@@ -38,7 +39,7 @@ export const generateRWPHCWPHReport = async (data, reportDateFormatted) => {
         });
 
         const titleSize = 12;
-        const spacingAfterLines = 40; // Increase this to move further down
+        const spacingAfterLines = reportPeriodText ? 28 : 40; // Increase this to move further down
         const titleY = height - 40 - lines.length * 14 - spacingAfterLines;
         page.drawText(title, {
             x: center(title, titleSize),

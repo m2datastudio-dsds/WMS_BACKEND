@@ -16,16 +16,19 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }, // RDS Postgres
 });
 
-const getYesterdayDate = () => {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().split('T')[0]; // 'YYYY-MM-DD'
-};
+// const getYesterdayDate = () => {
+//   const date = new Date();
+//   date.setDate(date.getDate() - 1);
+//   return date.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+// };
 
 const formatDateToDDMMYYYY = (dateString) => {
   const [year, month, day] = dateString.split('-');
   return `${day}-${month}-${year}`;
 };
+
+// toTs -> "YYYY-MM-DD" (assumes toTs is ISO string or "YYYY-MM-DD HH:mm:ss")
+const getDatePart = (ts) => String(ts).split("T")[0].split(" ")[0];
 
 // Generate MAX/MIN/AVG expressions for A1..An
 // Columns in Postgres are lowercase (a1, a2, ...)
@@ -42,55 +45,56 @@ const generateColumns = (count) => {
   }).join(',\n');
 };
 
-export const getMSTMSRMBRData = async () => {
-  const reportDate = getYesterdayDate();
+export const getMSTMSRMBRData = async ({ fromTs, toTs }) => {
+  //  Report date should match the window end date (6AM “sending day”)
+  const reportDate = getDatePart(toTs); // "YYYY-MM-DD"
   const reportDateFormatted = formatDateToDDMMYYYY(reportDate);
 
   try {
     // MSS: A1–A12
     const mstResult = await pool.query(
       `
-        SELECT date1,
+        SELECT
                ${generateColumns(12)}
         FROM mss_analog
-        WHERE date1 = $1
-        GROUP BY date1
+        WHERE (date1 + time1) >= $1::timestamp
+          AND (date1 + time1) <  $2::timestamp
       `,
-      [reportDate]
+      [fromTs, toTs]
     );
 
     // MSR: A1–A12
     const msrResult = await pool.query(
       `
-        SELECT date1,
+        SELECT 
                ${generateColumns(12)}
         FROM msr_analog
-        WHERE date1 = $1
-        GROUP BY date1
+        WHERE (date1 + time1) >= $1::timestamp
+          AND (date1 + time1) <  $2::timestamp
       `,
-      [reportDate]
+      [fromTs, toTs]
     );
 
     // MBR: A1–A24
     const mbrResult = await pool.query(
       `
-        SELECT date1,
+        SELECT
                ${generateColumns(24)}
         FROM mbr_analog
-        WHERE date1 = $1
-        GROUP BY date1
+        WHERE (date1 + time1) >= $1::timestamp
+          AND (date1 + time1) <  $2::timestamp
       `,
-      [reportDate]
+      [fromTs, toTs]
     );
     
     return {
       data: {
-        mst: mstResult.recordset[0] || {},
-        msr: msrResult.recordset[0] || {},
-        mbr: mbrResult.recordset[0] || {},
+        mst: mstResult.rows[0] || {},
+        msr: msrResult.rows[0] || {},
+        mbr: mbrResult.rows[0] || {},
       },
-      reportDate,
-      reportDateFormatted,
+      reportDate, // "YYYY-MM-DD" (end day)
+      reportDateFormatted, // "DD-MM-YYYY" (end day)
     };
   } catch (err) {
     console.error('❌ DB Query Error (MST/MSR/MBR):', err);

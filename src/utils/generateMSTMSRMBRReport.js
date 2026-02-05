@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
-export const generateMSTMSRMBRReport = async (data, reportDateFormatted) => {
+export const generateMSTMSRMBRReport = async (data, reportDateFormatted, reportPeriodText = '') => {
   // const outputDir = path.resolve('src', 'reports');
   // const filePath = path.join(outputDir, `MST_MSR_MBR_Report_${reportDateFormatted}.pdf`);
   // if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -24,11 +24,12 @@ export const generateMSTMSRMBRReport = async (data, reportDateFormatted) => {
       { text: 'COIMBATORE CORPORATION INCLUDING NEWLY MERGED AREAS WITH', size: 10 },
       { text: 'RIVER BHAVANI AS SOURCE PILLUR-3', size: 10 },
       { text: `DAILY REPORT ON DATE: ${reportDateFormatted}`, size: 11, color: rgb(0, 0, 0.8) },
+      ...(reportPeriodText ? [{ text: `REPORT PERIOD: ${reportPeriodText}`, size: 10, color: rgb(0.8, 0, 0) }] : [])
     ];
     lines.forEach((line, i) => {
       page.drawText(line.text, {
         x: center(line.text, line.size),
-        y: height - 40 - i * 15,
+        y: height - 40 - i * 14,
         size: line.size,
         font: bold,
         color: line.color || rgb(0, 0, 0),

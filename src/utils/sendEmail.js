@@ -9,7 +9,7 @@ import path from 'path';
  * @param {string[]} pdfFilePaths - Array of PDF file paths to attach
  * @param {string} reportDateFormatted - Report date in DD-MM-YYYY
  */
-const sendEmail = (pdfFilePaths, reportDateFormatted) => {
+const sendEmail = (pdfFilePaths, reportDateFormatted, reportPeriodText = '') => {
   // Check if all files exist
   const missingFiles = pdfFilePaths.filter(filePath => !fs.existsSync(filePath));
   if (missingFiles.length > 0) {
@@ -20,8 +20,8 @@ const sendEmail = (pdfFilePaths, reportDateFormatted) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'pillur3report@gmail.com',
-      pass: 'rkvv rgqo eikt zzti', // App-specific password
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASS, // App-specific password
     },
   });
 
@@ -39,17 +39,20 @@ const sendEmail = (pdfFilePaths, reportDateFormatted) => {
     .join('\n');
 
   const mailOptions = {
-    from: 'pillur3report@gmail.com',
+    from: process.env.MAIL_USER,
     to: [
-      'rajeshnrajesh143@gmail.com',
       'cityengineer.coimbatore@gmail.com',
       'eetwadrwscbe2023@gmail.com',
       'pillur3project@gmail.com',
+      'thinsaran@sias.co.in',
+      'venkateshwarank12@gmail.com',
+      'vasan2051@gmail.com',
     ],
-    subject: `Daily Water Supply Reports - ${reportDateFormatted}`,
+    subject: `Daily Water Supply Reports (${reportPeriodText}) - ${reportDateFormatted}`,
     text: `Dear Team,
 
-Please find attached the daily water supply reports for ${reportDateFormatted}, including:
+Please find attached the daily water supply reports for ${reportDateFormatted}.
+Report Period: ${reportPeriodText || '06:00 to 06:00'}, including:
 
 ${list}
 
