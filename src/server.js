@@ -28,7 +28,8 @@ const allowlist = [
   /^http:\/\/localhost:\d+$/,        // http://localhost:<any>
   /^http:\/\/127\.0\.0\.1:\d+$/,     // http://127.0.0.1:<any>
   /^http:\/\/192\.168\.123\.154:\d+$/, // http://192.168.123.154:<any>  <-- adjust for your LAN
-  /^http:\/\/65\.2\.129\.140:\d+$/ // new IP with any port
+  /^http:\/\/65\.2\.129\.140:\d+$/, // new IP with any port
+  /^http:\/\/65\.2\.129\.140$/       // without port
 ];
 
 // Make cache/CDNs vary by Origin
