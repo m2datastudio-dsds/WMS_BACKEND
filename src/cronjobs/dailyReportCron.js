@@ -6,9 +6,9 @@ import { generateAndSendReports } from '../generateAndSendReports.js';
 // Function to start the daily report cron job
 export const startCronJobs = () => {
   // Schedule to run daily at 6:00 AM IST
-  cron.schedule('0 6 * * *', async () => {
+  cron.schedule('15 6 * * *', async () => {
     try {
-      console.log('⏰ Running daily report cron at 06:00 AM IST...');
+      console.log('⏰ Running daily report cron at 06:15 AM IST...');
       await generateAndSendReports();
       console.log('✅ Daily reports generation and email completed.');
     } catch (error) {
@@ -18,5 +18,5 @@ export const startCronJobs = () => {
     timezone: 'Asia/Kolkata'
   });
 
-  console.log('⏰ Daily report cron scheduled for 06:00 AM IST.');
+  console.log('⏰ Daily report cron scheduled for 06:15 AM IST.');
 };

@@ -46,7 +46,6 @@ const sendEmail = (pdfFilePaths, reportDateFormatted, reportPeriodText = '') => 
       'pillur3project@gmail.com',
       'thinsaran@sias.co.in',
       'rajendran.p@meghaeng.com',
-      'venkateshwarank12@gmail.com',
       'vasan2051@gmail.com',
     ],
     subject: `Daily Water Supply Reports (${reportPeriodText}) - ${reportDateFormatted}`,

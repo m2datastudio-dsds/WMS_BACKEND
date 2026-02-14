@@ -77,11 +77,12 @@ export const generateMSTMSRMBRReport = async (data, reportDateFormatted, reportP
     });
     rows.forEach((row, idx) => {
       const rowY = y - rowHeight * (idx + 1);
-      const min = parseFloat((data[`Min_${row.tag}`] ?? 0).toFixed(2));
+      const prevMax  = parseFloat((data[`PrevMax_${row.tag}`] ?? 0).toFixed(2));
       const max = parseFloat((data[`Max_${row.tag}`] ?? 0).toFixed(2));
-      const cum = parseFloat((max - min).toFixed(2));
+      const initial = prevMax;
+      const cum = parseFloat((max - initial).toFixed(2));
       drawCell(page, x, rowY, colWidth, rowHeight, row.title, bold);
-      [min, max, cum].forEach((v, i) => {
+      [initial, max, cum].forEach((v, i) => {
         drawCell(page, x + (i + 1) * colWidth, rowY, colWidth, rowHeight, v.toFixed(2), font);
       });
     });

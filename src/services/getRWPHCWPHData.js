@@ -49,6 +49,11 @@ const generateColumns = (count) =>
     `;
   }).join(',\n');
 
+//  only PrevMax columns for the specific totalizer tags
+const generatePrevMaxForTags = (tagNums) => {
+  return tagNums.map((n) => `MAX(a${n}) AS "PrevMax_A${n}"`).join(',\n');
+};
+
 export const getRWPHCWPHData = async ({ fromTs, toTs }) => {
   //  Report date should match the window end date (6AM “sending day”)
   const reportDate = getDatePart(toTs); // "YYYY-MM-DD"
@@ -79,6 +84,32 @@ export const getRWPHCWPHData = async ({ fromTs, toTs }) => {
           AND (date1 + time1) <  $2::timestamp
       `,
       [fromTs, toTs]
+    );
+
+    //  Previous window MAX (previous day 06→06)
+    // previous window = (fromTs - 1 day) → fromTs
+    // RWPH totalizer tag: A23
+    const rwphPrevMaxRes = await rwphPool.query(
+      `
+        SELECT
+          ${generatePrevMaxForTags([23])}
+        FROM rwph_analog
+        WHERE (date1 + time1) >= ($1::timestamp - interval '1 day')
+          AND (date1 + time1) <  $1::timestamp
+      `,
+      [fromTs]
+    );
+
+    // CWPH totalizer tag: A10
+    const cwphPrevMaxRes = await cwphPool.query(
+      `
+        SELECT
+          ${generatePrevMaxForTags([10])}
+        FROM cwph_analog
+        WHERE (date1 + time1) >= ($1::timestamp - interval '1 day')
+          AND (date1 + time1) <  $1::timestamp
+      `,
+      [fromTs]
     );
 
     // RWPH RUN HOURS (Updated: Excluding 'CLWT_PMP1' and 'CLWT_PMP2')
@@ -189,10 +220,14 @@ export const getRWPHCWPHData = async ({ fromTs, toTs }) => {
       [fromTs, toTs]
     );
 
+    // Merge PrevMax_* into the same objects so PDF can read them easily
+    const rwph = { ...(rwphAnalogRes.rows[0] || {}), ...(rwphPrevMaxRes.rows[0] || {}) };
+    const cwph = { ...(cwphAnalogRes.rows[0] || {}), ...(cwphPrevMaxRes.rows[0] || {}) };
+
     return {
       data: {
-        rwph: rwphAnalogRes.rows[0] || {},
-        cwph: cwphAnalogRes.rows[0] || {},
+        rwph,
+        cwph,
         rwphRunHr: rwphRunHrRes.rows || [],
         cwphRunHr: cwphRunHrRes.rows || [],
       },

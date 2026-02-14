@@ -256,12 +256,18 @@ function drawFlowTable(page, title, tag, data, tableX, y, font, bold) {
     ['TOTALIZER', 'INITIAL FLOW\n(m3)', 'FINAL FLOW\n(m3)', 'CUM FLOW\n(m3)'].forEach((h, i) =>
         drawCell(page, tableX + i * colWidth, y, colWidth, rowHeight, h, bold, headerColor, true, 5.5));
 
-    const min = parseFloat((data[`Min_${tag}`] ?? 0).toFixed(2));
+    // Client rule:
+    // Initial = previous window MAX
+    // Final   = today window MAX
+    // Cum     = Final - Initial (allow negative)
+
+    const prevMax  = parseFloat((data[`PrevMax_${tag}`] ?? 0).toFixed(2));
     const max = parseFloat((data[`Max_${tag}`] ?? 0).toFixed(2));
-    const cum = parseFloat((max - min).toFixed(2));
+    const initial = prevMax;
+    const cum = parseFloat((max - initial).toFixed(2));
 
     drawCell(page, tableX, y - rowHeight, colWidth, rowHeight, 'OUTLET FLOW TOTALIZER', bold);
-    [min, max, cum].forEach((v, i) =>
+    [initial, max, cum].forEach((v, i) =>
         drawCell(page, tableX + (i + 1) * colWidth, y - rowHeight, colWidth, rowHeight, v.toFixed(2), font));
 }
 

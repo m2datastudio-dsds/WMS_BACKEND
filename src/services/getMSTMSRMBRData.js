@@ -45,6 +45,11 @@ const generateColumns = (count) => {
   }).join(',\n');
 };
 
+//  only PrevMax columns for the specific totalizer tags
+const generatePrevMaxForTags = (tagNums) => {
+  return tagNums.map((n) => `MAX(a${n}) AS "PrevMax_A${n}"`).join(',\n');
+};
+
 export const getMSTMSRMBRData = async ({ fromTs, toTs }) => {
   //  Report date should match the window end date (6AM “sending day”)
   const reportDate = getDatePart(toTs); // "YYYY-MM-DD"
@@ -86,12 +91,52 @@ export const getMSTMSRMBRData = async ({ fromTs, toTs }) => {
       `,
       [fromTs, toTs]
     );
+
+    // Previous window MAX (previous day 06→06)
+    // previous window = (fromTs - 1 day) → fromTs
+    const mstPrevMaxRes = await pool.query(
+      `
+        SELECT
+          ${generatePrevMaxForTags([7, 8])}
+        FROM mss_analog
+        WHERE (date1 + time1) >= ($1::timestamp - interval '1 day')
+          AND (date1 + time1) <  $1::timestamp
+      `,
+      [fromTs]
+    );
+
+    const msrPrevMaxRes = await pool.query(
+      `
+        SELECT
+          ${generatePrevMaxForTags([6, 12])}
+        FROM msr_analog
+        WHERE (date1 + time1) >= ($1::timestamp - interval '1 day')
+          AND (date1 + time1) <  $1::timestamp
+      `,
+      [fromTs]
+    );
+
+    const mbrPrevMaxRes = await pool.query(
+      `
+        SELECT
+          ${generatePrevMaxForTags([13, 14, 15, 16])}
+        FROM mbr_analog
+        WHERE (date1 + time1) >= ($1::timestamp - interval '1 day')
+          AND (date1 + time1) <  $1::timestamp
+      `,
+      [fromTs]
+    );
+
+    //  Merge PrevMax_* into the same objects so PDF can read them easily
+    const mst = { ...(mstResult.rows[0] || {}), ...(mstPrevMaxRes.rows[0] || {}) };
+    const msr = { ...(msrResult.rows[0] || {}), ...(msrPrevMaxRes.rows[0] || {}) };
+    const mbr = { ...(mbrResult.rows[0] || {}), ...(mbrPrevMaxRes.rows[0] || {}) };
     
     return {
       data: {
-        mst: mstResult.rows[0] || {},
-        msr: msrResult.rows[0] || {},
-        mbr: mbrResult.rows[0] || {},
+        mst,
+        msr,
+        mbr,
       },
       reportDate, // "YYYY-MM-DD" (end day)
       reportDateFormatted, // "DD-MM-YYYY" (end day)
